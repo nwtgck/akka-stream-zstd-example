@@ -7,7 +7,8 @@ import akka.stream.scaladsl.{FileIO, Sink, Source}
 import akka.util.ByteString
 import io.github.nwtgck.akka_stream_zstd.ZstdFlow
 
-import scala.util.{Failure, Success}
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 object Main {
   def main(args: Array[String]): Unit = {
@@ -27,6 +28,9 @@ object Main {
       // Store to file
       .runWith(FileIO.toPath(filePath))
 
+    // Wait for store
+    Await.ready(storingFut, 3.seconds)
+
 
     // Future of restoring
     val restoringFut = FileIO.fromPath(filePath)
@@ -37,17 +41,12 @@ object Main {
       // Convert ByteString to String
       .map(_.utf8String)
 
+    // Wait for restring and get
+    val decompressedStr: String = Await.result(restoringFut, 3.seconds)
 
-    (for {
-      _   <- storingFut
-      str <- restoringFut
-    } yield str).onComplete{
-      case Success(str) =>
-        println(s"Decompressed: '${str}'")
-        system.terminate()
-      case Failure(e) =>
-        e.printStackTrace()
-        system.terminate()
-    }
+    println(s"Decompressed: '${decompressedStr}'")
+    system.terminate()
+
+
   }
 }
