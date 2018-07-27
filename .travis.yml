@@ -1,6 +1,8 @@
 language: scala
 
 script:
+  # Download dataset
+  - ./files/download.sh
   # Just working-test
   - sbt run
 

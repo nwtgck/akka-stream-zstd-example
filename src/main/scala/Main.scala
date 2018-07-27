@@ -2,12 +2,12 @@ import java.io.File
 import java.nio.file.Path
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{Compression, FileIO, Sink, Source}
+import akka.stream.{ActorMaterializer, IOResult}
+import akka.stream.scaladsl.{Compression, FileIO, Flow, Sink, Source}
 import akka.util.ByteString
 import io.github.nwtgck.akka_stream_zstd.ZstdFlow
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 
 object Main {
@@ -73,70 +73,62 @@ object Main {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     import system.dispatcher
 
-    {
-      val filePath: Path = new File("./files/out.zst").toPath
-
-      printSimpleBenchmark("zstd compress", times = 10) {
-        // Create a simple source
-        val source = FileIO.fromPath(new File("./files/dickens").toPath)
-        // Future of store
-        val storingFut = source
-          // Compress
-          .via(ZstdFlow.compress())
-          // Store to file
-          .runWith(FileIO.toPath(filePath))
-
-        // Wait for store
-        Await.ready(storingFut, 3.seconds)
-      }
-
-
-      printSimpleBenchmark("zstd decompress", times = 10) {
-        // Future of restoring
-        val restoringFut = FileIO.fromPath(filePath)
-          // Decompress
-          .via(ZstdFlow.decompress())
-          // Concatenate into one ByteString
-          .runWith(Sink.fold(ByteString.empty)(_ ++ _))
-          // Convert ByteString to String
-          .map(_.utf8String)
-
-        // Wait for restring
-        Await.ready(restoringFut, 3.seconds)
-      }
+    // Compress
+    def compressAndStoreFut(srcFilePath: String, dstFilePath: String, compressFlow: Flow[ByteString, ByteString, _]): Future[_] = {
+      // Future of store
+      FileIO.fromPath(new File(srcFilePath).toPath)
+        // Compress
+        .via(compressFlow)
+        // Store to file
+        .runWith(FileIO.toPath(new File(dstFilePath).toPath))
     }
 
-    {
-      val filePath: Path = new File("./files/out.gzip").toPath
-
-      printSimpleBenchmark("zlib compress", times = 10) {
-        // Create a simple source
-        val source = FileIO.fromPath(new File("./files/dickens").toPath)
-        // Future of store
-        val storingFut = source
-          // Compress
-          .via(Compression.gzip)
-          // Store to file
-          .runWith(FileIO.toPath(filePath))
-
-        // Wait for store
-        Await.ready(storingFut, 3.seconds)
-      }
+    // Decompress
+    def decompressAndStoreFut(srcFilePath: String, dstFilePath:String, decompressFlow: Flow[ByteString, ByteString, _]): Future[_] = {
+      FileIO.fromPath(new File(srcFilePath).toPath)
+        // Decompress
+        .via(decompressFlow)
+        // Store to file
+        .runWith(FileIO.toPath(new File(dstFilePath).toPath))
+    }
 
 
-      printSimpleBenchmark("zlib decompress", times = 10) {
-        // Future of restoring
-        val restoringFut = FileIO.fromPath(filePath)
-          // Decompress
-          .via(Compression.deflate)
-          // Concatenate into one ByteString
-          .runWith(Sink.fold(ByteString.empty)(_ ++ _))
-          // Convert ByteString to String
-          .map(_.utf8String)
+    val timeout = 3.seconds
 
-        // Wait for restring
-        Await.ready(restoringFut, 3.seconds)
-      }
+    printSimpleBenchmark("zstd compress", times = 10) {
+      // Wait for store
+      Await.ready(compressAndStoreFut(
+        srcFilePath = "./files/dickens",
+        dstFilePath = "./files/out.zst",
+        compressFlow = ZstdFlow.compress()
+      ), timeout)
+    }
+
+    printSimpleBenchmark("zstd decompress", times = 10) {
+      // Wait for restring
+      Await.ready(decompressAndStoreFut(
+        srcFilePath    = "./files/out.zst",
+        dstFilePath    = "./files/decompressed",
+        decompressFlow = ZstdFlow.decompress()
+      ), timeout)
+    }
+
+    printSimpleBenchmark("zlib compress", times = 10) {
+      // Wait for store
+      Await.ready(compressAndStoreFut(
+        srcFilePath = "./files/dickens",
+        dstFilePath = "./files/out.gzip",
+        compressFlow = Compression.gzip
+      ), timeout)
+    }
+
+    printSimpleBenchmark("zlib decompress", times = 10) {
+      // Wait for restring
+      Await.ready(decompressAndStoreFut(
+        srcFilePath    = "./files/out.gzip",
+        dstFilePath    = "./files/decompressed",
+        decompressFlow = Compression.gunzip()
+      ), timeout)
     }
 
     system.terminate()
