@@ -4,7 +4,8 @@ script:
   # Download dataset
   - ./files/download.sh
   # Just working-test
-  - sbt run
+  - sbt "runMain ExampleMain"
+  - sbt "runMain SimpleBenchmarkMain"
 
 # (from: http://www.scala-sbt.org/1.0/docs/Travis-CI-with-sbt.html)
 before_cache:
