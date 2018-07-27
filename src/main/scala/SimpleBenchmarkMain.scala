@@ -15,7 +15,7 @@ object SimpleBenchmarkMain {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     import system.dispatcher
 
-    val timeout = 3.seconds
+    val timeout = 30.seconds
 
     printSimpleBenchmark("zstd compress", times = 10) {
       // Wait for store
