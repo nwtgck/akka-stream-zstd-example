@@ -1,5 +1,4 @@
-import java.io.File
-import java.nio.file.Path
+import java.nio.file.{Path, Paths}
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
@@ -16,7 +15,7 @@ object ExampleMain {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     import system.dispatcher
 
-    val filePath: Path = new File("out.zst").toPath
+    val filePath: Path = Paths.get("out.zst")
 
     // Create a simple source
     val source = Source.single(ByteString("hello, hello, hello, hello, hello, hello, world"))

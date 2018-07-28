@@ -1,4 +1,4 @@
-import java.io.File
+import java.nio.file.Paths
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
@@ -6,14 +6,13 @@ import akka.stream.scaladsl.{Compression, FileIO, Flow}
 import akka.util.ByteString
 import io.github.nwtgck.akka_stream_zstd.ZstdFlow
 
-import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
 object SimpleBenchmarkMain {
   def main(args: Array[String]): Unit = {
     implicit val system: ActorSystem = ActorSystem("my-system")
     implicit val materializer: ActorMaterializer = ActorMaterializer()
-    import system.dispatcher
 
     val timeout = 30.seconds
 
@@ -72,19 +71,19 @@ object SimpleBenchmarkMain {
   // Compress
   def compressAndStoreFut(srcFilePath: String, dstFilePath: String, compressFlow: Flow[ByteString, ByteString, _])(implicit materializer: ActorMaterializer): Future[_] = {
     // Future of store
-    FileIO.fromPath(new File(srcFilePath).toPath)
+    FileIO.fromPath(Paths.get(srcFilePath))
       // Compress
       .via(compressFlow)
       // Store to file
-      .runWith(FileIO.toPath(new File(dstFilePath).toPath))
+      .runWith(FileIO.toPath(Paths.get(dstFilePath)))
   }
 
   // Decompress
   def decompressAndStoreFut(srcFilePath: String, dstFilePath:String, decompressFlow: Flow[ByteString, ByteString, _])(implicit materializer: ActorMaterializer): Future[_] = {
-    FileIO.fromPath(new File(srcFilePath).toPath)
+    FileIO.fromPath(Paths.get(srcFilePath))
       // Decompress
       .via(decompressFlow)
       // Store to file
-      .runWith(FileIO.toPath(new File(dstFilePath).toPath))
+      .runWith(FileIO.toPath(Paths.get(dstFilePath)))
   }
 }
