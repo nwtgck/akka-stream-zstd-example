@@ -16,3 +16,7 @@ sbt "runMain ExampleMain"
 ./files/download.sh
 sbt "runMain SimpleBenchmarkMain"
 ```
+
+## Source of [files/dickens](files/dickens)
+
+<http://sun.aei.polsl.pl/~sdeor/index.php?page=silesia>
