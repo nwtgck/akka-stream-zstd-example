@@ -1,8 +1,6 @@
 language: scala
 
 script:
-  # Download dataset
-  - ./files/download.sh
   # Just working-test
   - sbt "runMain ExampleMain"
   - sbt "runMain SimpleBenchmarkMain"
